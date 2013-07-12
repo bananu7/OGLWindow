@@ -11,3 +11,9 @@
 *.lai
 *.la
 *.a
+
+# SCons base
+*.sconsign.dblite
+
+# Compiled windows binaries
+*.exe
