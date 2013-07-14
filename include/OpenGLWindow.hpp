@@ -28,30 +28,38 @@ namespace oglw {
         public: WindowDestroyException(std::string const& what) : WindowException(what) { }
     };
 
+    struct KeyInfo {
+        int key;
+    };
+
+    struct MouseInfo {
+        int x, y;
+        int button;
+    };
+
     class OpenGLWindowBase
     {
     protected:
-        std::function<void(unsigned, unsigned)> resizeCallback;
-        std::function<void(int) > keydownCallback;
-        std::function<void(int) > keyupCallback;
-        std::function<void(bool) > activateCallback;
-
         bool isActive;
 
     public:
+        std::function<void(void)> displayFunc;
+
+        std::function<void(unsigned, unsigned)> resizeCallback;
+        std::function<void(KeyInfo) > keydownCallback;
+        std::function<void(KeyInfo) > keyupCallback;
+        std::function<void(bool) > activateCallback;
+        std::function<void(MouseInfo)> mousemoveCallback;
+        std::function<void(MouseInfo)> mouseupCallback;
+        std::function<void(MouseInfo)> mousedownCallback;
+
         bool active() const { return isActive; }
 
-        void setResizeCb(decltype(resizeCallback) cb) {
-            resizeCallback = std::move(cb);
-        }
-        void setKeydownCb(decltype(keydownCallback) cb) {
-            keydownCallback = std::move(cb);
-        }
-        void setKeyupCb(decltype(keyupCallback) cb) {
-            keyupCallback = std::move(cb);
-        }
-        void setActivateCb(decltype(keyupCallback) cb) {
-            keyupCallback = std::move(cb);
+
+        enum class ECBType { MouseDown, MouseUp };
+
+        template<typename T>
+        void setCallback(ECBType e, T cb) {
         }
     };
 
@@ -136,6 +144,7 @@ namespace oglw {
                 kill();
             }
             catch (WindowException& e) {
+                // TODO: error reporting here
             }
             catch (...) {
             }
@@ -388,15 +397,19 @@ namespace oglw {
         case WM_KEYDOWN:                            // Is A Key Being Held Down?
             {
                 if (window->keyupCallback)
-                    window->keyupCallback(wParam);
+                    window->keyupCallback(KeyInfo { wParam });
                 return 0;
             }
 
         case WM_KEYUP:                                // Has A Key Been Released?
             {
                 if (window->keydownCallback)
-                    window->keydownCallback(wParam);
+                    window->keydownCallback(KeyInfo { wParam });
                 return 0;                                // Jump Back
+            }
+        case WM_MOUSEMOVE:
+            {
+                
             }
 
         case WM_SIZE:                                // Resize The OpenGL Window
