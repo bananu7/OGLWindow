@@ -54,13 +54,6 @@ namespace oglw {
         std::function<void(MouseInfo)> mousedownCallback;
 
         bool active() const { return isActive; }
-
-
-        enum class ECBType { MouseDown, MouseUp };
-
-        template<typename T>
-        void setCallback(ECBType e, T cb) {
-        }
     };
 
 #ifdef _WIN32
