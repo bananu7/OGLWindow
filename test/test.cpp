@@ -18,7 +18,7 @@ int main() {
     try {
         oglw::Window win;
 
-        win.setKeydownCb([&win](int key){ printf("lol"); });
+        win.keydownCallback = [&win](oglw::KeyInfo const& k){ printf("lol"); };
 
         //gldr::VertexAttributeArray vao;
         //gldr::Texture2d tex;
