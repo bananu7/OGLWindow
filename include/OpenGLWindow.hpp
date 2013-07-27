@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <functional>
+#include <stdexcept>
 
 namespace oglw {
 
@@ -30,6 +31,7 @@ namespace oglw {
         };
 
         int x, y;
+        double normX, normY;
         Button button;
     };
 
@@ -37,6 +39,7 @@ namespace oglw {
     {
     protected:
         bool isActive;
+        unsigned sizeX, sizeY;
 
     public:
         std::function<void(void)> displayFunc;
@@ -50,6 +53,13 @@ namespace oglw {
         std::function<void(MouseInfo)> mousedownCallback;
 
         bool active() const { return isActive; }
+        unsigned getSizeX() const { return sizeX; }
+        unsigned getSizeY() const { return sizeY; }
+
+        OpenGLWindowBase(unsigned sizeX, unsigned sizeY)
+            : sizeX(sizeX)
+            , sizeY(sizeY)
+        { }
     };
 
 #ifdef _WIN32
@@ -127,7 +137,7 @@ namespace oglw {
             case WM_MBUTTONDOWN:
                 {
                     if (window->mousedownCallback){
-                        window->mousedownCallback(mouseInfoFromMsgParam(wParam, lParam));
+                        window->mousedownCallback(mouseInfoFromMsgParam(wParam, lParam, window));
                     }
                     return 0;
                 }
@@ -136,14 +146,14 @@ namespace oglw {
             case WM_MBUTTONUP:
                 {
                     if (window->mouseupCallback){
-                        window->mouseupCallback(mouseInfoFromMsgParam(wParam, lParam));
+                        window->mouseupCallback(mouseInfoFromMsgParam(wParam, lParam, window));
                     }
                     return 0;
                 }
             case WM_MOUSEMOVE:
                 {
                     if (window->mousemoveCallback){
-                        window->mousemoveCallback(mouseInfoFromMsgParam(wParam, lParam));
+                        window->mousemoveCallback(mouseInfoFromMsgParam(wParam, lParam, window));
                     }
                     return 0;
                 }
@@ -151,7 +161,11 @@ namespace oglw {
             case WM_SIZE:                                // Resize The OpenGL Window
                 {
                     unsigned Width = LOWORD(lParam);
-                    unsigned Height = HIWORD(wParam);
+                    unsigned Height = HIWORD(lParam);
+
+                    window->sizeX = Width;
+                    window->sizeY = Height;
+
                     if (window->resizeCallback)
                         window->resizeCallback(Width, Height);
                     return 0;                                // Jump Back
@@ -206,16 +220,19 @@ namespace oglw {
             }
         }
 
-        static MouseInfo mouseInfoFromMsgParam(WPARAM wParam, LPARAM lParam){
+        static MouseInfo mouseInfoFromMsgParam(WPARAM wParam, LPARAM lParam, WinAPIOGLWindow* window){
             int x = LOWORD(lParam);
             int y = HIWORD(lParam);
+            double normX = static_cast<double>(x) / window->sizeX;
+            double normY = static_cast<double>(y) / window->sizeY;
+
             MouseInfo::Button b;
             switch (wParam) {
                 case MK_LBUTTON: b = MouseInfo::Button::Left; break;
                 case MK_RBUTTON: b = MouseInfo::Button::Right; break;
                 case MK_MBUTTON: b = MouseInfo::Button::Middle; break;
             }
-            return MouseInfo { x, y, b };
+            return MouseInfo { x, y, normX, normY, b };
         }
 
     public:
@@ -274,6 +291,7 @@ namespace oglw {
             std::function<HGLRC(HDC)> contextCreator = std::function<HGLRC(HDC)>()
             )
             : m_Fullscreen(fullscreen)
+            , OpenGLWindowBase(width, height)
         {
             try {
                 unsigned        PixelFormat;            // Holds The Results After Searching For A Match
@@ -301,7 +319,7 @@ namespace oglw {
                 if (!RegisterClass(&wc))                                    // Attempt To Register The Window Class
                 {
                     MessageBox(NULL, "Failed To Register The Window Class.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
-                    throw std::runtime_error("Failed To Register The Window Class.");
+                    throw WindowCreateException("Failed To Register The Window Class.");
                 }
 
                 if (m_Fullscreen)                                                // Are We Still In Fullscreen Mode?
