@@ -132,24 +132,40 @@ namespace oglw {
                         window->keydownCallback(KeyInfo { wParam });
                     return 0;                                // Jump Back
                 }
+
+               
             case WM_LBUTTONDOWN:
+                if (window->mousedownCallback){
+                    window->mousedownCallback(mouseInfoFromMsgParam(wParam, lParam, window, MouseInfo::Button::Left));
+                }
+                return 0;
             case WM_RBUTTONDOWN:
+                if (window->mousedownCallback){
+                    window->mousedownCallback(mouseInfoFromMsgParam(wParam, lParam, window, MouseInfo::Button::Right));
+                }
+                return 0;
             case WM_MBUTTONDOWN:
-                {
-                    if (window->mousedownCallback){
-                        window->mousedownCallback(mouseInfoFromMsgParam(wParam, lParam, window));
-                    }
-                    return 0;
+                if (window->mousedownCallback){
+                    window->mousedownCallback(mouseInfoFromMsgParam(wParam, lParam, window, MouseInfo::Button::Middle));
                 }
+                return 0;
+
             case WM_LBUTTONUP:
-            case WM_RBUTTONUP:
-            case WM_MBUTTONUP:
-                {
-                    if (window->mouseupCallback){
-                        window->mouseupCallback(mouseInfoFromMsgParam(wParam, lParam, window));
-                    }
-                    return 0;
+                if (window->mouseupCallback){
+                    window->mouseupCallback(mouseInfoFromMsgParam(wParam, lParam, window, MouseInfo::Button::Left));
                 }
+                return 0;
+            case WM_RBUTTONUP:
+                if (window->mouseupCallback){
+                    window->mouseupCallback(mouseInfoFromMsgParam(wParam, lParam, window, MouseInfo::Button::Right));
+                }
+                return 0;
+            case WM_MBUTTONUP:
+                if (window->mouseupCallback){
+                    window->mouseupCallback(mouseInfoFromMsgParam(wParam, lParam, window, MouseInfo::Button::Middle));
+                }
+                return 0;
+
             case WM_MOUSEMOVE:
                 {
                     if (window->mousemoveCallback){
@@ -220,19 +236,22 @@ namespace oglw {
             }
         }
 
-        static MouseInfo mouseInfoFromMsgParam(WPARAM wParam, LPARAM lParam, WinAPIOGLWindow* window){
+        static MouseInfo mouseInfoFromMsgParam(WPARAM wParam, LPARAM lParam, WinAPIOGLWindow* window, 
+            MouseInfo::Button button = MouseInfo::Button::None) {
             int x = LOWORD(lParam);
             int y = HIWORD(lParam);
             double normX = static_cast<double>(x) / window->sizeX;
             double normY = static_cast<double>(y) / window->sizeY;
 
-            MouseInfo::Button b;
+            /*MouseInfo::Button b;
             switch (wParam) {
                 case MK_LBUTTON: b = MouseInfo::Button::Left; break;
                 case MK_RBUTTON: b = MouseInfo::Button::Right; break;
                 case MK_MBUTTON: b = MouseInfo::Button::Middle; break;
-            }
-            return MouseInfo { x, y, normX, normY, b };
+                case 0: default:
+                    b = MouseInfo::Button::None; break;
+            }*/
+            return MouseInfo { x, y, normX, normY, button };
         }
 
     public:
