@@ -22,6 +22,9 @@ namespace oglw {
     };
 
     struct KeyInfo {
+        KeyInfo(WPARAM wParam)
+            : key(static_cast<unsigned>(wParam))
+        {}
         unsigned key;
     };
 
@@ -61,8 +64,11 @@ namespace oglw {
             , sizeY(sizeY)
         { }
     };
+}
 
 #ifdef _WIN32
+
+namespace oglw {
 
     class WinAPIOGLWindow : public OpenGLWindowBase {
     protected:
@@ -77,7 +83,7 @@ namespace oglw {
             WPARAM    wParam,            // Additional Message Information
             LPARAM    lParam)            // Additional Message Information
         {
-            WinAPIOGLWindow* window = static_cast<decltype(window)>(reinterpret_cast<void*>(GetWindowLongPtr(hWnd, GWLP_USERDATA)));
+            WinAPIOGLWindow* window = static_cast<decltype(window)>(reinterpret_cast<void*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA)));
 
             switch (uMsg)                                    // Check For Windows Messages
             {
@@ -86,7 +92,7 @@ namespace oglw {
                     CREATESTRUCT *lpcs = reinterpret_cast<CREATESTRUCT*>(lParam);
                     WinAPIOGLWindow* win = reinterpret_cast<WinAPIOGLWindow*>(lpcs->lpCreateParams);
 
-                    SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(win));
+                    SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(win));
                 }
                 return 0;
 
@@ -189,7 +195,7 @@ namespace oglw {
             }
 
             // Pass All Unhandled Messages To DefWindowProc
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+            return DefWindowProcW(hWnd, uMsg, wParam, lParam);
         }
 
         void kill(void)                    // Properly kill The Window
@@ -197,7 +203,7 @@ namespace oglw {
             try {
                 if (m_Fullscreen) {
                     // Are We In Fullscreen Mode?
-                    ChangeDisplaySettings(NULL, 0);                    // If So Switch Back To The Desktop
+                    ChangeDisplaySettingsW(NULL, 0);                    // If So Switch Back To The Desktop
                     ShowCursor(TRUE);                                // Show Mouse Pointer
                 }
 
@@ -226,12 +232,12 @@ namespace oglw {
                     throw WindowDestroyException("Could Not Release hWnd.");
                 }
 
-                if (!UnregisterClass("OpenGL", m_hInstance)) {
+                if (!UnregisterClassW(L"OpenGL", m_hInstance)) {
                     m_hInstance = nullptr;
                     throw WindowDestroyException("Could Not Unregister Class.");
                 }
             }
-            catch (WindowException & w) {
+            catch (WindowException &) {
                 throw;
             }
         }
@@ -275,7 +281,7 @@ namespace oglw {
             dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
             // Try To Set Selected Mode And Get Results.  NOTE: CDS_FULLSCREEN Gets Rid Of Start Bar.
-            if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+            if (ChangeDisplaySettingsW(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
             {
                 return false;
             }
@@ -285,13 +291,13 @@ namespace oglw {
 
         bool process() {
             MSG msg;
-            if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))    // Is There A Message Waiting?
+            if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))    // Is There A Message Waiting?
             {
                 if (msg.message == WM_QUIT) {
                     return false;
                 }
                 TranslateMessage(&msg);                // Translate The Message
-                DispatchMessage(&msg);                // Dispatch The Message
+                DispatchMessageW(&msg);                // Dispatch The Message
             }
             return true;
         }
@@ -323,21 +329,21 @@ namespace oglw {
                 WindowRect.top = (long) 0;                // Set Top Value To 0
                 WindowRect.bottom = (long) height;        // Set Bottom Value To Requested Height
 
-                m_hInstance = GetModuleHandle(NULL);                // Grab An Instance For Our Window
+                m_hInstance = GetModuleHandleW(NULL);                // Grab An Instance For Our Window
                 wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;    // Redraw On Size, And Own DC For Window.
                 wc.lpfnWndProc = (WNDPROC) WndProc;                    // WndProc Handles Messages
                 wc.cbClsExtra = 0;                                    // No Extra Window Data
                 wc.cbWndExtra = 0;                                    // No Extra Window Data
                 wc.hInstance = m_hInstance;                            // Set The Instance
-                wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);            // Load The Default Icon
-                wc.hCursor = LoadCursor(NULL, IDC_ARROW);            // Load The Arrow Pointer
+                wc.hIcon = LoadIconW(NULL, IDI_WINLOGO);            // Load The Default Icon
+                wc.hCursor = LoadCursorW(NULL, IDC_ARROW);            // Load The Arrow Pointer
                 wc.hbrBackground = NULL;                                    // No Background Required For GL
                 wc.lpszMenuName = NULL;                                    // We Don't Want A Menu
-                wc.lpszClassName = "OpenGL";                                // Set The Class Name
+                wc.lpszClassName = L"OpenGL";                                // Set The Class Name
 
-                if (!RegisterClass(&wc))                                    // Attempt To Register The Window Class
+                if (!RegisterClassW(&wc))                                    // Attempt To Register The Window Class
                 {
-                    MessageBox(NULL, "Failed To Register The Window Class.", "ERROR", MB_OK | MB_ICONEXCLAMATION);
+                    MessageBoxW(NULL, L"Failed To Register The Window Class.", L"ERROR", MB_OK | MB_ICONEXCLAMATION);
                     throw WindowCreateException("Failed To Register The Window Class.");
                 }
 
@@ -356,19 +362,23 @@ namespace oglw {
 
                 AdjustWindowRectEx(&WindowRect, dwStyle, FALSE, dwExStyle);        // Adjust Window To True Requested Size
 
+
+                // This thing is necessary to cooperate with multibyte API.
+                std::wstring wideTitle(title.begin(), title.end());
+
                 // Create The Window
-                if (!(m_hWnd = CreateWindowEx(dwExStyle,                            // Extended Style For The Window
-                    "OpenGL",                            // Class Name
-                    title.c_str(),                                // Window Title
-                    dwStyle |                            // Defined Window Style
-                    WS_CLIPSIBLINGS |                    // Required Window Style
-                    WS_CLIPCHILDREN,                    // Required Window Style
-                    0, 0,                                // Window Position
-                    WindowRect.right - WindowRect.left,    // Calculate Window Width
-                    WindowRect.bottom - WindowRect.top,    // Calculate Window Height
-                    NULL,                                // No Parent Window
-                    NULL,                                // No Menu
-                    m_hInstance,                            // Instance
+                if (!(m_hWnd = CreateWindowExW(dwExStyle,                            // Extended Style For The Window
+                    L"OpenGL",                            // Class Name
+                    wideTitle.c_str(),                           // Window Title
+                    dwStyle |                                // Defined Window Style
+                    WS_CLIPSIBLINGS |                        // Required Window Style
+                    WS_CLIPCHILDREN,                         // Required Window Style
+                    0, 0,                                    // Window Position
+                    WindowRect.right - WindowRect.left,      // Calculate Window Width
+                    WindowRect.bottom - WindowRect.top,      // Calculate Window Height
+                    NULL,                                    // No Parent Window
+                    NULL,                                    // No Menu
+                    m_hInstance,                             // Instance
                     this)))
                 {
                     throw WindowCreateException("Window Creation Error");
@@ -440,7 +450,7 @@ namespace oglw {
                 SetForegroundWindow(m_hWnd);                        // Slightly Higher Priority
                 SetFocus(m_hWnd);                                    // Sets Keyboard Focus To The Window
             }
-            catch (WindowCreateException const& e) {
+            catch (WindowCreateException const&) {
                 kill();
             }
         }
