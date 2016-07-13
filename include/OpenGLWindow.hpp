@@ -83,7 +83,7 @@ namespace oglw {
             WPARAM    wParam,            // Additional Message Information
             LPARAM    lParam)            // Additional Message Information
         {
-            WinAPIOGLWindow* window = static_cast<decltype(window)>(reinterpret_cast<void*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA)));
+            auto window = static_cast<WinAPIOGLWindow*>(reinterpret_cast<void*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA)));
 
             switch (uMsg)                                    // Check For Windows Messages
             {
