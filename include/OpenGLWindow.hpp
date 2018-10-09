@@ -1,9 +1,17 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <functional>
 #include <stdexcept>
+
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+
+    #ifndef OGLW_NO_LIBS
+        #pragma comment(lib, "opengl32.lib")
+        #pragma comment(lib, "glu32.lib")
+    #endif // !OGLW_NO_LIBS
+#endif
 
 namespace oglw {
 
