@@ -31,6 +31,9 @@ namespace oglw {
     class WindowDestroyException : public virtual WindowException {
         public: WindowDestroyException(std::string const& what) : WindowException(what) { }
     };
+    class WindowOpenGLException : public virtual WindowException {
+        public: WindowOpenGLException(std::string const& what) : WindowException(what) { }
+    };
 
     struct KeyInfo {
         KeyInfo(WPARAM wParam)
@@ -96,6 +99,7 @@ namespace oglw {
         HWND  m_hWnd;            // Holds Our Window Handle
         HINSTANCE m_hInstance;        // Holds The Instance Of The Application
         bool m_Fullscreen;
+        bool throwOnGlErrors = true;
 
         static LRESULT CALLBACK WndProc(HWND    hWnd,            // Handle For This Window
             UINT    uMsg,            // Message For This Window
@@ -285,8 +289,17 @@ namespace oglw {
         }
 
         void display() {
-            if (displayFunc)
+            if (displayFunc) {
                 displayFunc();
+            }
+
+            if (throwOnGlErrors) {
+                auto err = glGetError();
+                if (err) {
+                    throw WindowOpenGLException("OpenGL Error occured: " + std::to_string(err));
+                }
+            }
+
             SwapBuffers(m_hDC);
         }
 
