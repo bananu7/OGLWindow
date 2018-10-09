@@ -9,11 +9,14 @@
 
 int main() {
     try {
-        oglw::Window win("Window", 800, 600);
+        auto params = oglw::OpenGLWindowParams{};
+        params.width = 800;
+        params.height = 600;
+        oglw::Window win(params);
 
         win.keydownCallback = [&win](oglw::KeyInfo const& k) { printf("lol"); };
 
-        const std::array<uint8_t, 3> color{ 255, 0, 0 };
+        const std::array<uint8_t, 3> color { 255, 0, 0 };
         std::vector<std::pair<int, int>> pixels; 
 
         for (int i = 0; i < 500; ++i) {

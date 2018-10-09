@@ -72,6 +72,14 @@ namespace oglw {
             , sizeY(sizeY)
         { }
     };
+
+    struct OpenGLWindowParams {
+        std::string const& title = "OpenGL window";
+        unsigned width = 800;
+        unsigned height = 600;
+        unsigned char bits = 32;
+        bool fullscreen = false;
+    };
 }
 
 #ifdef _WIN32
@@ -316,15 +324,11 @@ namespace oglw {
         }*/
 
         WinAPIOGLWindow(
-            std::string const& title = "OpenGL window",
-            unsigned width = 800,
-            unsigned height = 600,
-            unsigned char bits = 32,
-            bool fullscreen = false,
+            OpenGLWindowParams const& parameters,
             std::function<HGLRC(HDC)> contextCreator = std::function<HGLRC(HDC)>()
             )
-            : m_Fullscreen(fullscreen)
-            , OpenGLWindowBase(width, height)
+            : m_Fullscreen(parameters.fullscreen)
+            , OpenGLWindowBase(parameters.width, parameters.height)
         {
             try {
                 unsigned        PixelFormat;            // Holds The Results After Searching For A Match
@@ -333,9 +337,9 @@ namespace oglw {
                 DWORD        dwStyle;                // Window Style
                 RECT        WindowRect;                // Grabs Rectangle Upper Left / Lower Right Values
                 WindowRect.left = (long) 0;            // Set Left Value To 0
-                WindowRect.right = (long) width;        // Set Right Value To Requested Width
+                WindowRect.right = (long) parameters.width;        // Set Right Value To Requested Width
                 WindowRect.top = (long) 0;                // Set Top Value To 0
-                WindowRect.bottom = (long) height;        // Set Bottom Value To Requested Height
+                WindowRect.bottom = (long) parameters.height;        // Set Bottom Value To Requested Height
 
                 m_hInstance = GetModuleHandleW(NULL);                // Grab An Instance For Our Window
                 wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;    // Redraw On Size, And Own DC For Window.
@@ -357,7 +361,7 @@ namespace oglw {
 
                 if (m_Fullscreen)                                                // Are We Still In Fullscreen Mode?
                 {
-                    enableFullScreen(width, height, bits);
+                    enableFullScreen(parameters.width, parameters.height, parameters.bits);
                     dwExStyle = WS_EX_APPWINDOW;                                // Window Extended Style
                     dwStyle = WS_POPUP;                                        // Windows Style
                     ShowCursor(FALSE);                                        // Hide Mouse Pointer
@@ -372,7 +376,7 @@ namespace oglw {
 
 
                 // This thing is necessary to cooperate with multibyte API.
-                std::wstring wideTitle(title.begin(), title.end());
+                std::wstring wideTitle(parameters.title.begin(), parameters.title.end());
 
                 // Create The Window
                 if (!(m_hWnd = CreateWindowExW(dwExStyle,                            // Extended Style For The Window
@@ -400,7 +404,7 @@ namespace oglw {
                     PFD_SUPPORT_OPENGL |                        // Format Must Support OpenGL
                     PFD_DOUBLEBUFFER,                            // Must Support Double Buffering
                     PFD_TYPE_RGBA,                                // Request An RGBA Format
-                    bits,                                        // Select Our Color Depth
+                    parameters.bits,                             // Select Our Color Depth
                     0, 0, 0, 0, 0, 0,                            // Color Bits Ignored
                     0,                                            // No Alpha Buffer
                     0,                                            // Shift Bit Ignored
