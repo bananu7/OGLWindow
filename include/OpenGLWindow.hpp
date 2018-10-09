@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <stdexcept>
+#include <string>
 
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
@@ -13,13 +14,15 @@
     #endif // !OGLW_NO_LIBS
 #endif
 
+#include <gl/GL.h>
+
 namespace oglw {
 
     class WindowException : public virtual std::exception {
         std::string _what;
     public:
         WindowException(std::string const& what) : _what(what) { }
-        const char* what() { return _what.c_str(); }
+        const char* what() const override { return _what.c_str(); }
     };
 
     class WindowCreateException : public virtual WindowException {
